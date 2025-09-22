@@ -1,0 +1,130 @@
+# %pylab inline
+import os
+import numpy as np
+import pandas as pd
+import imageio.v2 as imageio
+from sklearn.metrics import accuracy_score
+
+import tensorflow as tf
+import keras
+
+pip install imageio
+
+#to stop pottential randomness
+seed = 128
+rng= np.random.RandomState(seed)
+
+#first step is to set dictionary path for safekeeping
+rootdir = os.path.abspath("./.")
+data_dir = os.path.join(rootdir, "data")
+sub_dir = os.path.join(rootdir , "sub")
+
+#checking for existance
+os.path.exists(rootdir)
+os.path.exists(data_dir)
+os.path.exists(sub_dir)
+
+#step 1 : data loading and preprocessing
+train = pd.read_csv(os.path.join(data_dir,  '/content/train.csv'))
+test = pd.read_csv(os.path.join(data_dir, '/content/test.csv'))
+
+sample_submission = pd.read_csv(os.path.join(data_dir, '/content/sample_submission.csv'))
+
+import numpy as np
+import matplotlib.pyplot as plt
+
+# pick a random row
+sample = train.sample(1).iloc[0]
+label = sample['label']
+
+# reshape the 784 pixels into 28×28
+img = sample.drop('label').to_numpy().reshape(28, 28)
+
+# plot
+plt.imshow(img, cmap='gray')
+plt.title(f"Label: {label}")
+plt.axis('off')
+plt.show()
+
+import numpy as np
+from tensorflow.keras.utils import to_categorical
+
+# ----- Training set -----
+# Separate features and labels
+train_x = train.drop('label', axis=1).to_numpy(dtype='float32') / 255.0
+train_x = train_x.reshape(-1, 784)  # already flat but keeps shape explicit
+train_y = to_categorical(train['label'].to_numpy(), num_classes=10)
+
+# ----- Test set -----
+# If your test CSV has only pixel columns
+test_x = test.to_numpy(dtype='float32') / 255.0
+test_x = test_x.reshape(-1, 784)
+
+split_size = int(train_x.shape[0]*0.7)
+
+train_x, val_x = train_x[:split_size], train_x[split_size:]
+train_y, val_y = train_y[:split_size], train_y[split_size:]
+train.label.iloc[split_size:]
+
+#STEP 2: Model Building
+
+# define variables
+input_num_units  = 784
+hidden1_num_units = 500
+hidden2_num_units = 500
+hidden3_num_units = 500
+hidden4_num_units = 500
+hidden5_num_units = 500
+output_num_units = 10
+
+epochs = 15
+batch_size = 128
+from keras.layers import Dropout
+dropout_ratio = 0.2
+
+from keras.models import Sequential
+from keras.layers import Dense
+
+# create model with 5 hidden layers
+model = Sequential([
+    Dense(units=hidden1_num_units, input_dim=input_num_units, activation='relu'),
+    Dropout(dropout_ratio),
+    Dense(units=hidden2_num_units, activation='relu'),
+    Dropout(dropout_ratio),
+    Dense(units=hidden3_num_units, activation='relu'),
+    Dropout(dropout_ratio),
+    Dense(units=hidden4_num_units, activation='relu'),
+    Dropout(dropout_ratio),
+    Dense(units=hidden5_num_units, activation='relu'),
+    Dropout(dropout_ratio),
+    Dense(units=output_num_units, activation='softmax')
+])
+
+# compile the model
+model.compile(optimizer="adam",
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
+
+#time to train the model
+trained_model = model.fit(train_x ,  train_y , epochs= epochs , batch_size =batch_size , validation_data= (val_x,val_y))
+
+# Now here begans the tricky step " model evolution"
+
+# pick a random index from the test set
+idx = np.random.randint(0, test_x.shape[0])
+
+# get the corresponding image data
+img = test_x[idx].reshape(28, 28)   # 28x28 because 784 pixels
+
+# predict the digit
+pred_class = np.argmax(model.predict(test_x[idx].reshape(1, 784)), axis=1)[0]
+
+print("Prediction is:", pred_class)
+
+# show the image
+plt.imshow(img, cmap='gray')
+plt.axis('off')
+plt.show()
+
+## variables are adjustable and then our model will perform better IA
+#so we are going to adjust hyper parameters
